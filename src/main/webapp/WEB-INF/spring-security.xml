@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<beans xmlns='http://www.springframework.org/schema/beans'
+       xmlns:security='http://www.springframework.org/schema/security'
+       xmlns:oauth='http://www.springframework.org/schema/security/oauth2'
+       xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+       xsi:schemaLocation='http://www.springframework.org/schema/beans
+                            http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+                           http://www.springframework.org/schema/security
+                            http://www.springframework.org/schema/security/spring-security-3.1.xsd
+                           http://www.springframework.org/schema/security/oauth2
+                            http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd'>
+
+    <!-- Users -->
+    <security:authentication-manager>
+        <security:authentication-provider>
+            <security:user-service>
+                <security:user name='kasper' password='repsak' authorities='user' />
+            </security:user-service>
+        </security:authentication-provider>
+    </security:authentication-manager>
+
+    <!-- Clients -->
+
+    <oauth:client-details-service id='clientDetailsService'>
+
+        <oauth:client client-id='web-client'
+                      authorized-grant-types='implicit'
+                      authorities='client'
+                      scope='read' />
+
+    </oauth:client-details-service>
+
+    <bean id='clientDetailsUserDetailsService' class='org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService'>
+        <constructor-arg ref='clientDetailsService' />
+    </bean>
+
+    <security:authentication-manager id='clientAuthenticationManager'>
+        <security:authentication-provider user-service-ref='clientDetailsUserDetailsService' />
+    </security:authentication-manager>
+
+    <!-- Tokens -->
+
+    <bean id='tokenStore' class='org.springframework.security.oauth2.provider.token.InMemoryTokenStore' />
+
+    <bean id='tokenServices' class='org.springframework.security.oauth2.provider.token.DefaultTokenServices'>
+        <property name='tokenStore' ref='tokenStore' />
+        <property name='accessTokenValiditySeconds' value='0' />
+    </bean>
+
+    <!-- Client authorisation -->
+    <oauth:authorization-server client-details-service-ref='clientDetailsService' token-services-ref='tokenServices'>
+        <oauth:implicit />
+    </oauth:authorization-server>
+
+    <!-- Client access handling -->
+
+    <oauth:web-expression-handler id='oAuthWebExpressionHandler' />
+
+    <!-- Provide only JSON responses -->
+    <bean id='oAuthExceptionRenderer' class='org.springframework.security.oauth2.provider.error.DefaultOAuth2ExceptionRenderer'>
+        <property name='messageConverters'>
+            <list>
+                <bean class='org.springframework.http.converter.json.MappingJackson2HttpMessageConverter' />
+            </list>
+        </property>
+    </bean>
+
+    <bean id='oAuthAuthenticationEntryPoint' class='org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint'>
+        <property name='realmName' value='portti' />
+        <property name='exceptionRenderer' ref='oAuthExceptionRenderer' />
+    </bean>
+
+    <bean id='clientAuthenticationEntryPoint' class='org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint'>
+        <property name='realmName' value='portti/client' />
+	<property name='typeName' value='Basic' />
+        <property name='exceptionRenderer' ref='oAuthExceptionRenderer' />
+    </bean>
+
+    <bean id='oAuthAccessDeniedHandler' class='org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler'>
+        <property name='exceptionRenderer' ref='oAuthExceptionRenderer' />
+    </bean>
+
+    <!-- Resource provider -->
+    <oauth:resource-server id='resourceServerFilter' entry-point-ref='oAuthAuthenticationEntryPoint' token-services-ref='tokenServices' />
+
+    <!-- Client authentication -->
+    <security:http pattern='/oauth/token' create-session='stateless' use-expressions='true' authentication-manager-ref='clientAuthenticationManager'>
+
+        <security:anonymous enabled='false' />
+        <security:http-basic entry-point-ref='clientAuthenticationEntryPoint' />
+        <security:access-denied-handler ref='oAuthAccessDeniedHandler' />
+
+        <security:intercept-url pattern='/oauth/token' access='isAuthenticated()' />
+
+    </security:http>
+
+    <!-- Client access -->
+    <security:http pattern='/api/**' create-session='stateless' use-expressions='true' entry-point-ref='oAuthAuthenticationEntryPoint'>
+
+        <security:anonymous enabled='false' />
+        <security:expression-handler ref='oAuthWebExpressionHandler' />
+        <security:custom-filter ref='resourceServerFilter' before='PRE_AUTH_FILTER' />
+        <security:access-denied-handler ref='oAuthAccessDeniedHandler' />
+
+        <security:intercept-url pattern='/api/secret' access='#oauth2.isUser() and #oauth2.hasScope("read")' />
+        <security:intercept-url pattern='/**' access='denyAll' />
+
+    </security:http>
+
+    <!-- User access -->
+    <security:http use-expressions='true' disable-url-rewriting='true'>
+
+        <security:form-login />
+        <security:logout />
+
+        <security:intercept-url pattern='/oauth/authorize' access='isFullyAuthenticated()' />
+        <security:intercept-url pattern='/**' access='permitAll' />
+
+    </security:http>
+
+</beans>
