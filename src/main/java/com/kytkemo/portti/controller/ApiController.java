@@ -16,8 +16,7 @@ public final class ApiController {
     @ResponseBody
     public Map<String, String> getSecret() {
 
-        final Map<String, String> secret = new HashMap<>();
-
+        Map<String, String> secret = new HashMap<>();
         secret.put("secret", "42");
 
         return secret;
