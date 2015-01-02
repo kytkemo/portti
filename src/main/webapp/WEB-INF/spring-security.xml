@@ -72,7 +72,7 @@
 
     <bean id='clientAuthenticationEntryPoint' class='org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint'>
         <property name='realmName' value='portti/client' />
-	<property name='typeName' value='Basic' />
+        <property name='typeName' value='Basic' />
         <property name='exceptionRenderer' ref='oAuthExceptionRenderer' />
     </bean>
 
