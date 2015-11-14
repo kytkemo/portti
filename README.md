@@ -1,7 +1,7 @@
 portti
 ======
 
-OAuth 2.0 authorisation and resource provider with Spring Security OAuth (Java 8 + Java EE 7 + Spring 4.2.2.RELEASE + Spring Security OAuth2 2.0.7.RELEASE). Portti uses a minimal JSON-only configuration.
+OAuth 2.0 authorisation and resource provider with Spring Security OAuth (Java 8 + Java EE 7 + Spring 4.2.2.RELEASE + Spring Security OAuth2 2.0.8.RELEASE). Portti uses a minimal JSON-only configuration.
 
 ## Build
 
